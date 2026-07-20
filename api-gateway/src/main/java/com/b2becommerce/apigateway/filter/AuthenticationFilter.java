@@ -2,6 +2,7 @@ package com.b2becommerce.apigateway.filter;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -16,6 +17,9 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    @Autowired
+    private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
     public AuthenticationFilter() {
         super(Config.class);
@@ -32,6 +36,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             String authHeader = authHeaders.get(0);
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 authHeader = authHeader.substring(7);
+            }
+
+            // Check if token is blacklisted in Redis
+            if (Boolean.TRUE.equals(redisTemplate.hasKey("jwt:blacklist:" + authHeader))) {
+                return onError(exchange, "Token has been invalidated (Logged out)", HttpStatus.UNAUTHORIZED);
             }
 
             try {

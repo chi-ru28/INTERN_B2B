@@ -1,11 +1,20 @@
 import React, { useContext, useState } from 'react';
 import { CartContext } from '../context/CartContext';
+import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useContext(CartContext);
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [added, setAdded] = useState(false);
 
   const handleAddToCart = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
     addToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500); // Visual feedback duration

@@ -2,9 +2,11 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { ShoppingCart, User, X, Trash2, LogOut, Settings, UserCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../context/CartContext';
+import { AuthContext } from '../context/AuthContext';
 
 const Navbar = () => {
   const { cartItems, totalItems, removeFromCart, clearCart } = useContext(CartContext);
+  const { user, logout } = useContext(AuthContext);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -34,6 +36,12 @@ const Navbar = () => {
   const cartTotal = cartItems.reduce((sum, item) => sum + (parseFloat(item.price.replace(/,/g, '')) * item.quantity), 0);
 
   const handleCheckout = async () => {
+    if (!user) {
+      showToast('Please login to checkout', 'error');
+      setTimeout(() => navigate('/login'), 1500);
+      return;
+    }
+    
     if (cartItems.length === 0) return;
     
     try {
@@ -68,26 +76,51 @@ const Navbar = () => {
     }
   };
 
+  const handleSignOut = () => {
+    setIsProfileOpen(false);
+    logout();
+    showToast('Sign out successful!', 'success');
+    navigate('/');
+  };
+
+  const openCartOrLogin = () => {
+    if (!user) {
+      showToast('Please login to view cart', 'error');
+      navigate('/login');
+      return;
+    }
+    setIsCartOpen(!isCartOpen);
+    setIsProfileOpen(false);
+  };
+
   return (
     <nav className="navbar glass">
       <div className="container flex-between">
         <Link to="/" className="logo">B2B.Enterprise</Link>
-        <div className="nav-links flex-center">
-          <Link to="/catalog">Catalog</Link>
-          <Link to="/orders">Orders</Link>
+        <div className="nav-links flex-center" style={{ gap: '1rem' }}>
+          <Link to="/catalog" style={{ marginRight: '0.5rem' }}>Catalog</Link>
+          
+          {user ? (
+            <Link to="/orders" style={{ marginRight: '0.5rem' }}>Orders</Link>
+          ) : (
+            <>
+              <Link to="/login" style={{ color: '#cbd5e1', textDecoration: 'none', fontWeight: '500' }}>Login</Link>
+              <Link to="/register" className="btn btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem', textDecoration: 'none' }}>Sign Up</Link>
+            </>
+          )}
           
           <div ref={cartRef} style={{ position: 'relative', display: 'inline-block', marginLeft: 'var(--spacing-lg)' }}>
-            <button className="btn btn-secondary" onClick={() => { setIsCartOpen(!isCartOpen); setIsProfileOpen(false); }} style={{ padding: '0.5rem', borderRadius: '50%' }}>
+            <button className="btn btn-secondary" onClick={openCartOrLogin} style={{ padding: '0.5rem', borderRadius: '50%' }}>
               <ShoppingCart size={20} />
             </button>
-            {totalItems > 0 && (
+            {user && totalItems > 0 && (
               <span className="cart-badge animate-scale-in">
                 {totalItems > 99 ? '99+' : totalItems}
               </span>
             )}
 
             {/* Cart Dropdown */}
-            {isCartOpen && (
+            {isCartOpen && user && (
               <div className="cart-dropdown animate-fade-in" style={{
                 position: 'absolute', top: '100%', right: '0', marginTop: '1rem',
                 width: '350px', backgroundColor: 'rgba(30, 41, 59, 0.95)', backdropFilter: 'blur(16px)',
@@ -137,47 +170,48 @@ const Navbar = () => {
             )}
           </div>
           
-          <div ref={profileRef} style={{ position: 'relative', display: 'inline-block', marginLeft: 'var(--spacing-sm)' }}>
-            <button className="btn btn-secondary" onClick={() => { setIsProfileOpen(!isProfileOpen); setIsCartOpen(false); }} style={{ padding: '0.5rem', borderRadius: '50%' }}>
-              <User size={20} />
-            </button>
-            
-            {/* Profile Dropdown */}
-            {isProfileOpen && (
-              <div className="profile-dropdown animate-fade-in" style={{
-                position: 'absolute', top: '100%', right: '0', marginTop: '1rem',
-                width: '240px', backgroundColor: 'rgba(30, 41, 59, 0.95)', backdropFilter: 'blur(16px)',
-                borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', zIndex: 100, padding: '1rem',
-                display: 'flex', flexDirection: 'column'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '0.5rem' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
-                    DU
+          {user && (
+            <div ref={profileRef} style={{ position: 'relative', display: 'inline-block', marginLeft: 'var(--spacing-sm)' }}>
+              <button className="btn btn-secondary" onClick={() => { setIsProfileOpen(!isProfileOpen); setIsCartOpen(false); }} style={{ padding: '0.5rem', borderRadius: '50%' }}>
+                <User size={20} />
+              </button>
+              
+              {/* Profile Dropdown */}
+              {isProfileOpen && (
+                <div className="profile-dropdown animate-fade-in" style={{
+                  position: 'absolute', top: '100%', right: '0', marginTop: '1rem',
+                  width: '240px', backgroundColor: 'rgba(30, 41, 59, 0.95)', backdropFilter: 'blur(16px)',
+                  borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', zIndex: 100, padding: '1rem',
+                  display: 'flex', flexDirection: 'column'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '0.5rem' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
+                      {user.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ color: '#f8fafc', fontWeight: '600', fontSize: '0.95rem' }}>{user.name}</div>
+                      <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{user.email}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ color: '#f8fafc', fontWeight: '600', fontSize: '0.95rem' }}>Demo User</div>
-                    <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>admin@b2b.enterprise</div>
-                  </div>
+                  
+                  <button className="dropdown-item" onClick={() => { setIsProfileOpen(false); navigate('/profile'); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'none', border: 'none', color: '#cbd5e1', padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
+                    <UserCircle size={18} />
+                    <span>My Profile</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { setIsProfileOpen(false); navigate('/settings'); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'none', border: 'none', color: '#cbd5e1', padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
+                    <Settings size={18} />
+                    <span>Settings</span>
+                  </button>
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
+                  <button className="dropdown-item" onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'none', border: 'none', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
+                    <LogOut size={18} />
+                    <span>Sign Out</span>
+                  </button>
                 </div>
-                
-                <button className="dropdown-item" onClick={() => { setIsProfileOpen(false); navigate('/profile'); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'none', border: 'none', color: '#cbd5e1', padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
-                  <UserCircle size={18} />
-                  <span>My Profile</span>
-                </button>
-                <button className="dropdown-item" onClick={() => { setIsProfileOpen(false); navigate('/settings'); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'none', border: 'none', color: '#cbd5e1', padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
-                  <Settings size={18} />
-                  <span>Settings</span>
-                </button>
-                <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
-                <button className="dropdown-item" onClick={() => { setIsProfileOpen(false); showToast('Sign out successful!', 'success'); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'none', border: 'none', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
-                  <LogOut size={18} />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            )}
-          </div>
-
+              )}
+            </div>
+          )}
         </div>
       </div>
       

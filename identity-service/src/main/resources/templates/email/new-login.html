@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="color: #333333; text-align: center;">New Login Detected</h2>
+        <p style="color: #555555; font-size: 16px;">Hello <span th:text="${name}">User</span>,</p>
+        <p style="color: #555555; font-size: 16px;">We noticed a new login to your B2B Enterprise account from a new device or location.</p>
+        
+        <div style="background-color: #f8fafc; padding: 15px; border-radius: 5px; margin: 20px 0; border: 1px solid #e2e8f0;">
+            <p style="margin: 5px 0;"><strong>Time:</strong> <span th:text="${time}">Now</span></p>
+            <p style="margin: 5px 0;"><strong>IP Address:</strong> <span th:text="${ipAddress}">192.168.1.1</span></p>
+        </div>
+        
+        <p style="color: #555555; font-size: 16px;">If this was you, you can safely ignore this email.</p>
+        
+        <p style="color: #ef4444; font-size: 16px; font-weight: bold;">If this wasn't you, please secure your account immediately by resetting your password.</p>
+        
+        <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 30px 0;">
+        <p style="color: #999999; font-size: 12px; text-align: center;">&copy; 2026 B2B Enterprise. All rights reserved.</p>
+    </div>
+</body>
+</html>
