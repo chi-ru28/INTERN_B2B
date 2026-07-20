@@ -16,12 +16,12 @@ const Catalog = () => {
         await new Promise(resolve => setTimeout(resolve, 800));
         
         const mockProducts = [
-          { id: 1, name: 'Enterprise Server Blade', description: 'High-density compute for the modern data center.', price: '4,999.00' },
-          { id: 2, name: 'Core Switch 9000', description: 'Layer 3 routing with terabit backplane.', price: '12,500.00' },
-          { id: 3, name: 'NVMe Storage Array', description: '100TB raw flash storage with sub-millisecond latency.', price: '25,000.00' },
-          { id: 4, name: 'Secure Firewall Pro', description: 'Next-gen packet inspection and VPN termination.', price: '3,200.00' },
-          { id: 5, name: 'Load Balancer Appliance', description: 'L7 load balancing with hardware SSL offloading.', price: '8,400.00' },
-          { id: 6, name: 'AI Accelerator Card', description: 'Tensor cores for enterprise ML workloads.', price: '15,000.00' },
+          { id: 1, skuCode: 'SERVER-BLADE-01', name: 'Enterprise Server Blade', description: 'High-density compute for the modern data center.', price: '4,999.00', imageUrl: '/images/1.png' },
+          { id: 2, skuCode: 'CORE-SWITCH-9K', name: 'Core Switch 9000', description: 'Layer 3 routing with terabit backplane.', price: '12,500.00', imageUrl: '/images/2.png' },
+          { id: 3, skuCode: 'NVME-100TB', name: 'NVMe Storage Array', description: '100TB raw flash storage with sub-millisecond latency.', price: '25,000.00', imageUrl: '/images/3.png' },
+          { id: 4, skuCode: 'FW-PRO-SEC', name: 'Secure Firewall Pro', description: 'Next-gen packet inspection and VPN termination.', price: '3,200.00', imageUrl: '/images/4.png' },
+          { id: 5, skuCode: 'LB-APP-L7', name: 'Load Balancer Appliance', description: 'L7 load balancing with hardware SSL offloading.', price: '8,400.00', imageUrl: '/images/5.png' },
+          { id: 6, skuCode: 'AI-ACCEL-GPU', name: 'AI Accelerator Card', description: 'Tensor cores for enterprise ML workloads.', price: '15,000.00', imageUrl: '/images/6.png' },
         ];
         
         setProducts(mockProducts);

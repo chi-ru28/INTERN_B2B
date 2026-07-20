@@ -171,3 +171,9 @@ p { margin-bottom: var(--spacing-md); color: var(--color-text-muted); }
 .nav-links a:hover {
   color: var(--color-text-main);
 }
+
+.cart-badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; height: 20px; min-width: 20px; display: flex; align-items: center; justify-content: center; border-radius: 10px; padding: 0 5px; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); z-index: 10; border: 2px solid var(--color-bg); pointer-events: none; }
+.animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+@keyframes scaleIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.btn-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.btn-success:hover { background: rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.4); }

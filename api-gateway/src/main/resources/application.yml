@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8888
 
 eureka:
   client:
@@ -16,13 +16,18 @@ spring:
           uri: lb://IDENTITY-SERVICE
           predicates:
             - Path=/auth/**
-        # Example of a secured route for future services
-        # - id: product-catalog-service
-        #   uri: lb://PRODUCT-CATALOG-SERVICE
-        #   predicates:
-        #     - Path=/products/**
-        #   filters:
-        #     - AuthenticationFilter
+        - id: product-catalog-service
+          uri: lb://PRODUCT-CATALOG-SERVICE
+          predicates:
+            - Path=/api/products/**
+        - id: inventory-service
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/api/inventory/**
+        - id: order-service
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/api/orders/**
 
 jwt:
   # This is a dummy secret for development. In production, use a secure, randomly generated string.

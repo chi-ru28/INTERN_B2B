@@ -44,3 +44,7 @@ node_modules/
 dist/
 .env*
 .env.local
+
+*.err
+jdk17/
+

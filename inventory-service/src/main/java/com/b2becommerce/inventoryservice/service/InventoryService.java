@@ -31,7 +31,8 @@ public class InventoryService {
         return inventoryRepository.findBySkuCodeIn(skuCodes).stream()
                 .collect(Collectors.toMap(
                         inventory -> inventory.getSkuCode(),
-                        inventory -> inventory.getQuantity() > 0
+                        inventory -> inventory.getQuantity() > 0,
+                        (a, b) -> a || b
                 ));
     }
 

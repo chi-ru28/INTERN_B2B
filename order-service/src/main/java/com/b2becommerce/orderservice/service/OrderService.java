@@ -36,7 +36,7 @@ public class OrderService {
         // Synchronous call to Inventory Service via Feign Client
         Map<String, Boolean> stockStatus = inventoryClient.areInStock(skuCodes);
 
-        boolean allProductsInStock = stockStatus.values().stream().allMatch(Boolean::booleanValue);
+        boolean allProductsInStock = stockStatus.values().stream().allMatch(b -> Boolean.TRUE.equals(b));
 
         if (allProductsInStock) {
             order.setOrderNumber(UUID.randomUUID().toString());
@@ -56,5 +56,10 @@ public class OrderService {
     public String fallbackMethod(Order order, RuntimeException runtimeException) {
         log.error("Circuit breaker fallback triggered for order: {} due to {}", order, runtimeException.getMessage());
         return "Oops! Something went wrong, please order after some time!";
+    }
+
+    @Transactional(readOnly = true)
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
     }
 }

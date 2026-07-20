@@ -5,7 +5,7 @@ spring:
   application:
     name: identity-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/b2b_ecommerce
+    url: jdbc:postgresql://localhost:5433/b2b_ecommerce
     username: b2b_user
     password: b2b_password
   jpa:
