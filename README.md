@@ -1,74 +1,70 @@
-# Enterprise B2B Bounded-Context E-Commerce Platform
+# Enterprise B2B E-Commerce Platform
 
-A production-grade, distributed B2B e-commerce platform built with Java Spring Cloud Microservices, Apache Kafka, and React.
+A microservices-based B2B E-Commerce platform built with Spring Boot, React, and a modern Dockerized infrastructure. This project serves as a comprehensive prototype for an enterprise-grade backend ecosystem.
 
-## 🚀 Architecture Overview
+## Architecture
 
-This platform is designed to overcome the limitations of monolithic architectures by implementing a highly available, fault-tolerant, and horizontally scalable microservices ecosystem.
+The platform is designed around the **Bounded Context** pattern from Domain-Driven Design (DDD). It utilizes a distributed microservices architecture to ensure scalability, fault tolerance, and separation of concerns.
 
-### Core Technologies
-- **Backend:** Java 17, Spring Boot 3, Spring Cloud
-- **Frontend:** React, Vite, Vanilla CSS (Glassmorphism UI)
-- **Service Discovery:** Netflix Eureka
-- **API Gateway:** Spring Cloud Gateway (with Global JWT Authentication)
-- **Event Choreography:** Apache Kafka (KRaft mode)
-- **Resilience:** Resilience4j (Circuit Breakers)
-- **Polyglot Persistence:** PostgreSQL, MongoDB, Redis
+### Microservices
+1. **Discovery Server (`discovery-server`)**: Netflix Eureka server for service registry and discovery.
+2. **API Gateway (`api-gateway`)**: Spring Cloud Gateway that routes all incoming frontend traffic to the appropriate backend microservices.
+3. **Identity Service (`identity-service`)**: Handles user authentication, credential storage (PostgreSQL), and JWT token generation.
+4. **Product Catalog Service (`product-catalog-service`)**: Manages the product catalog. Uses MongoDB for flexible schema design to handle diverse product attributes.
+5. **Inventory Service (`inventory-service`)**: Manages product stock levels. Uses PostgreSQL for ACID compliance.
+6. **Order Service (`order-service`)**: Handles order placement. Communicates synchronously with the Inventory Service (via FeignClient) and asynchronously with the Notification Service (via Apache Kafka).
+7. **Notification Service (`notification-service`)**: Listens to Kafka topics for `OrderPlacedEvent`s and processes asynchronous notifications.
 
-### Microservices Ecosystem
-1. **API Gateway (`8080`):** The single entry point. Handles routing and globally validates JWTs.
-2. **Discovery Server (`8761`):** Netflix Eureka registry for dynamic service location.
-3. **Identity Service (`8081`):** Handles user authentication and issues signed JSON Web Tokens (JWT). Backed by PostgreSQL.
-4. **Product Catalog Service (`8082`):** Manages dynamic product data using MongoDB. Implements Redis for high-speed caching of read operations.
-5. **Inventory Service (`8083`):** Strict, transactional inventory management using PostgreSQL. Acts as a Kafka Consumer to deduct stock asynchronously.
-6. **Order Service (`8084`):** The orchestrator. Uses OpenFeign to synchronously verify stock, saves orders in PostgreSQL, and acts as a Kafka Producer to trigger the order lifecycle.
-7. **Notification Service (`8085`):** A lightweight Kafka Consumer that handles sending email/SMS confirmations asynchronously.
+### Infrastructure (Dockerized)
+- **PostgreSQL**: Relational database for Identity, Inventory, and Order services.
+- **MongoDB**: NoSQL database for the Product Catalog service.
+- **Redis**: Distributed caching (configured for API Gateway / caching layers).
+- **Apache Kafka**: Event broker for asynchronous communication (KRaft mode).
 
-## ⚙️ Event-Driven Choreography
-When an order is placed, the `order-service` publishes an `OrderPlacedEvent` to the `orderTopic` in Kafka. The `inventory-service` and `notification-service` independently consume this event to deduct stock and notify the customer without blocking the main checkout flow.
+### Frontend
+- **Vite + React SPA**: A modern, glassmorphic Single Page Application built with React, React Router, and Lucide React icons.
 
-## 🛡️ Fault Tolerance
-Synchronous calls (e.g., `order-service` calling `inventory-service` via OpenFeign) are wrapped in **Resilience4j Circuit Breakers**. If the inventory service experiences an outage or high latency, the circuit trips open, preventing cascading failures and instantly returning a graceful fallback message to the user.
+## Prerequisites
+- Java 17+
+- Apache Maven 3.9+
+- Node.js 18+
+- Docker Desktop (with WSL 2 enabled on Windows)
 
-## 🛠️ Getting Started (Local Development)
-
-### Prerequisites
-- Java 17
-- Maven
-- Node.js (for frontend)
-- Docker & Docker Compose
+## Getting Started
 
 ### 1. Start Infrastructure
-Start the required databases and message broker:
+Start the required databases and Kafka broker using Docker Compose:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
-This spins up PostgreSQL, MongoDB, Redis, and Apache Kafka.
 
-### 2. Build & Run Backend Services
-From the root directory:
+### 2. Build the Backend
+Compile all the Spring Boot microservices:
 ```bash
-mvn clean install
+mvn clean install -DskipTests
 ```
-Start the services in the following order:
-1. `discovery-server`
-2. `api-gateway`
-3. Domain Services (`identity`, `product-catalog`, `inventory`, `order`, `notification`)
 
-### 3. Start Frontend
-Navigate to the frontend directory:
+### 3. Run the Services
+You can run the provided `start-all.bat` script on Windows to automatically launch all 7 microservices and the React frontend in separate command windows.
 ```bash
-cd frontend
-npm install
-npm run dev
+./start-all.bat
 ```
-The React SPA will be available at `http://localhost:3000`.
+*(Note: Ensure you start the `discovery-server` first and wait a few seconds before starting the other services so they can register successfully).*
 
-## 🧪 Testing
-JUnit 5 and Mockito tests are included for critical business workflows in the `order-service` and `inventory-service`. Run tests via Maven:
+### 4. Access the Platform
+- **Frontend UI**: `http://localhost:3000`
+- **API Gateway**: `http://localhost:8080`
+- **Eureka Dashboard**: `http://localhost:8761`
+
+## Testing
+The core domain services (`order-service` and `inventory-service`) include JUnit 5 and Mockito tests for the business logic.
+To run the tests:
 ```bash
 mvn test
 ```
 
-## 📄 License
-MIT License
+## Technologies Used
+- **Backend**: Java 17, Spring Boot 3, Spring Cloud, Spring Data JPA, Spring Data MongoDB, FeignClient, Resilience4j (Circuit Breaker).
+- **Frontend**: React 18, Vite, React Router DOM, Vanilla CSS (Design System).
+- **Event Streaming**: Apache Kafka.
+- **Databases**: PostgreSQL, MongoDB, Redis.
