@@ -50,6 +50,7 @@ public class AuthService {
     private com.b2becommerce.identityservice.repository.PasswordHistoryRepository passwordHistoryRepository;
 
     @Autowired
+    @SuppressWarnings("deprecation")
     private com.b2becommerce.identityservice.repository.PasswordResetTokenRepository resetTokenRepository;
 
     @Autowired
@@ -62,7 +63,7 @@ public class AuthService {
     private KafkaProducerService kafkaProducerService;
 
     @Transactional
-    public String register(RegisterRequest request) {
+    public java.util.Map<String, Object> register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email is already taken!");
         }
@@ -96,10 +97,16 @@ public class AuthService {
         
         emailService.sendVerificationEmail(user.getEmail(), user.getName(), token);
 
-        return "Registration successful! Please check your email to verify your account.";
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("message", "Registration successful! Please check your email to verify your account.");
+        response.put("_id", user.getId().toString());
+        response.put("name", user.getName());
+        response.put("email", user.getEmail());
+        response.put("role", customerRole.getName());
+        return response;
     }
 
-    public java.util.Map<String, String> login(LoginRequest request) {
+    public java.util.Map<String, Object> login(LoginRequest request) {
         UserCredential user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -123,9 +130,20 @@ public class AuthService {
                 String accessToken = jwtService.generateToken(request.getEmail());
                 String refreshToken = redisService.generateRefreshToken(request.getEmail());
                 
-                java.util.Map<String, String> response = new java.util.HashMap<>();
+                java.util.Map<String, Object> response = new java.util.HashMap<>();
+                response.put("success", true);
+                response.put("token", accessToken);
                 response.put("accessToken", accessToken);
                 response.put("refreshToken", refreshToken);
+
+                java.util.Map<String, Object> userObj = new java.util.HashMap<>();
+                userObj.put("id", user.getId().toString());
+                userObj.put("name", user.getName());
+                userObj.put("email", user.getEmail());
+                userObj.put("isActive", user.getStatus() == AccountStatus.ACTIVE);
+                userObj.put("role", user.getRoles().isEmpty() ? "" : user.getRoles().iterator().next().getName());
+                response.put("user", userObj);
+
                 return response;
             }
         } catch (org.springframework.security.core.AuthenticationException e) {
@@ -214,9 +232,9 @@ public class AuthService {
     // --- New OTP Methods ---
 
     @Transactional
-    public void requestOtp(String email, String ipAddress, String browser, String os, String country) {
+    public String requestOtp(String email, String ipAddress, String browser, String os, String country) {
         UserCredential user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with this email"));
+                .orElseThrow(() -> new com.b2becommerce.identityservice.exception.UserNotFoundException("User not found with this email"));
 
         String otp = redisService.generateAndStoreOtp(OTPType.PASSWORD_RESET, email);
 
@@ -225,7 +243,15 @@ public class AuthService {
 
         kafkaProducerService.publishEvent("auth-events", new OTPRequestedEvent(email, "OTP_REQUESTED", ipAddress, browser, os, country, LocalDateTime.now()));
 
-        emailService.sendOtpEmail(user.getEmail(), user.getName(), otp, ipAddress, browser, os, country, LocalDateTime.now().toString());
+        try {
+            emailService.sendOtpEmail(user.getEmail(), user.getName(), otp, ipAddress, browser, os, country, LocalDateTime.now().toString());
+        } catch (Exception e) {
+            // Explicit Rollback of Redis OTP
+            redisService.cleanupOtpFlow(email);
+            throw e;
+        }
+        
+        return otp;
     }
 
     @Transactional
@@ -243,12 +269,13 @@ public class AuthService {
     }
 
     @Transactional
-    public void resendOtp(String email, String ipAddress, String browser, String os, String country) {
+    public String resendOtp(String email, String ipAddress, String browser, String os, String country) {
         UserCredential user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with this email"));
+                .orElseThrow(() -> new com.b2becommerce.identityservice.exception.UserNotFoundException("User not found with this email"));
 
         String newOtp = redisService.resendOtp(OTPType.PASSWORD_RESET, email);
         emailService.sendOtpEmail(user.getEmail(), user.getName(), newOtp, ipAddress, browser, os, country, LocalDateTime.now().toString());
+        return newOtp;
     }
 
     @Transactional
@@ -283,6 +310,56 @@ public class AuthService {
         auditLogRepository.save(log);
 
         kafkaProducerService.publishEvent("auth-events", new PasswordResetEvent(email, "PASSWORD_RESET", LocalDateTime.now()));
+    }
+
+    @Transactional
+    public void updatePassword(String email, String currentPassword, String newPassword) {
+        if (currentPassword.equals(newPassword)) {
+            throw new RuntimeException("New password cannot be the same as current password.");
+        }
+        
+        UserCredential user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("Incorrect current password.");
+        }
+
+        java.util.List<com.b2becommerce.identityservice.entity.PasswordHistory> recentPasswords = 
+            passwordHistoryRepository.findTop5ByUserOrderByCreatedAtDesc(user);
+        
+        for (com.b2becommerce.identityservice.entity.PasswordHistory ph : recentPasswords) {
+            if (passwordEncoder.matches(newPassword, ph.getPasswordHash())) {
+                throw new com.b2becommerce.identityservice.exception.PasswordHistoryViolationException("Cannot reuse one of your last 5 passwords");
+            }
+        }
+
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
+
+        com.b2becommerce.identityservice.entity.PasswordHistory history = 
+            new com.b2becommerce.identityservice.entity.PasswordHistory(user, encodedPassword);
+        passwordHistoryRepository.save(history);
+        
+        AuditLog log = new AuditLog(email, "PASSWORD_UPDATED", null, null, null, null, "User updated their password");
+        auditLogRepository.save(log);
+    }
+
+    public java.util.Map<String, Object> getCurrentUserProfile(String email) {
+        if (email == null) {
+            throw new RuntimeException("User profile not found.");
+        }
+        UserCredential user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User profile not found."));
+
+        java.util.Map<String, Object> profile = new java.util.HashMap<>();
+        profile.put("id", user.getId().toString());
+        profile.put("name", user.getName());
+        profile.put("email", user.getEmail());
+        profile.put("isActive", user.getStatus() == AccountStatus.ACTIVE);
+        profile.put("role", user.getRoles().isEmpty() ? "" : user.getRoles().iterator().next().getName());
+        return profile;
     }
 
     public String refresh(String refreshToken) {

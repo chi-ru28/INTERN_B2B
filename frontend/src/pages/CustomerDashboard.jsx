@@ -2,18 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, TrendingUp, Clock, ShoppingCart, ChevronRight, FileText } from 'lucide-react';
 
+import api from '../api/axiosConfig';
+
 const CustomerDashboard = () => {
   const [recentOrders, setRecentOrders] = useState([]);
   const [stats, setStats] = useState({ totalOrders: 0, activeOrders: 0, totalSpent: 0 });
 
   useEffect(() => {
     // Fetch real orders to populate the dashboard stats
-    fetch('/api/orders')
+    api.get('/api/orders')
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch');
-        return res.json();
-      })
-      .then(data => {
+        const data = res.data;
         // Sort by id descending for latest
         const sorted = data.sort((a, b) => b.id - a.id);
         setRecentOrders(sorted.slice(0, 3)); // Top 3

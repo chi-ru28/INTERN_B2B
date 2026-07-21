@@ -42,7 +42,19 @@ Write-Host "  [?] Are LAPTOP-TP-X1 and MONITOR-TV-P27 in stock? " -NoNewline
 Write-Host $invResponse -ForegroundColor Green
 
 # 4. Place an Order
-Write-Host "`n4. Placing an Order via API Gateway (Order Service)..." -ForegroundColor Yellow
+Write-Host "`n4. Authenticating and Placing an Order via API Gateway..." -ForegroundColor Yellow
+
+# Login first to get JWT token
+$loginUrl = "http://localhost:8888/api/v1/auth/login"
+$loginPayload = @{
+    email = "patelruchi2830@gmail.com"
+    password = "password123"
+} | ConvertTo-Json
+
+Write-Host "  [+] Logging in as patelruchi2830@gmail.com..." -ForegroundColor Green
+$loginResponse = Invoke-RestMethod -Uri $loginUrl -Method Post -Body $loginPayload -ContentType "application/json"
+$token = $loginResponse.token
+
 $orderUrl = "http://localhost:8888/api/orders"
 $orderPayload = @{
     orderLineItemsList = @(
@@ -51,7 +63,7 @@ $orderPayload = @{
     )
 } | ConvertTo-Json -Depth 4
 
-$orderResponse = Invoke-RestMethod -Uri $orderUrl -Method Post -Body $orderPayload -ContentType "application/json"
+$orderResponse = Invoke-RestMethod -Uri $orderUrl -Method Post -Body $orderPayload -ContentType "application/json" -Headers @{ "Authorization" = "Bearer $token" }
 Write-Host "  [+] Order Service Response: $orderResponse" -ForegroundColor Green
 
 Write-Host "`n5. Check Notification Service console window!" -ForegroundColor Yellow

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './Orders.css';
 
+import api from '../api/axiosConfig';
+
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,17 +13,9 @@ const Orders = () => {
       try {
         setLoading(true);
         // Hit the API Gateway for orders
-        const response = await fetch('/api/orders', {
-          headers: {
-            'Authorization': 'Bearer demo-token' // The backend AuthenticationFilter requires this
-          }
-        });
+        const response = await api.get('/api/orders');
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch orders from server');
-        }
-
-        const data = await response.json();
+        const data = response.data;
         setOrders(data);
         setError(null);
       } catch (err) {

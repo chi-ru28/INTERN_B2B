@@ -1,6 +1,9 @@
 package com.b2becommerce.inventoryservice.service;
 
 import com.b2becommerce.inventoryservice.repository.InventoryRepository;
+import com.b2becommerce.inventoryservice.exception.InventoryNotFoundException;
+import com.b2becommerce.inventoryservice.exception.InsufficientStockException;
+import com.b2becommerce.inventoryservice.entity.Inventory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,9 +40,54 @@ public class InventoryService {
     }
 
     @Transactional
-    public void deductInventory(String orderNumber) {
-        // In a real scenario, we would parse the items and deduct specific quantities.
-        // For this scaffolding, we simulate the deduction process.
-        log.info("Deducting inventory for order: {}", orderNumber);
+    public void deductInventory(String skuCode, int quantity) {
+        log.info("Deducting {} inventory for SKU: {}", quantity, skuCode);
+        Inventory inventory = inventoryRepository.findBySkuCode(skuCode)
+                .orElseThrow(() -> new InventoryNotFoundException("Inventory not found for SKU: " + skuCode));
+
+        if (inventory.getQuantity() - inventory.getReservedQuantity() < quantity) {
+            throw new InsufficientStockException("Insufficient stock for SKU: " + skuCode);
+        }
+
+        inventory.setQuantity(inventory.getQuantity() - quantity);
+        inventoryRepository.save(inventory);
+    }
+
+    @Transactional
+    public void addStock(String skuCode, int quantity) {
+        log.info("Adding {} inventory for SKU: {}", quantity, skuCode);
+        Inventory inventory = inventoryRepository.findBySkuCode(skuCode)
+                .orElseGet(() -> {
+                    Inventory newInventory = new Inventory();
+                    newInventory.setSkuCode(skuCode);
+                    newInventory.setQuantity(0);
+                    newInventory.setReservedQuantity(0);
+                    return newInventory;
+                });
+
+        inventory.setQuantity(inventory.getQuantity() + quantity);
+        inventoryRepository.save(inventory);
+    }
+
+    @Transactional
+    public void reserveStock(String skuCode, int quantity) {
+        log.info("Reserving {} inventory for SKU: {}", quantity, skuCode);
+        Inventory inventory = inventoryRepository.findBySkuCode(skuCode)
+                .orElseThrow(() -> new InventoryNotFoundException("Inventory not found for SKU: " + skuCode));
+
+        if (inventory.getQuantity() - inventory.getReservedQuantity() < quantity) {
+            throw new InsufficientStockException("Insufficient stock to reserve for SKU: " + skuCode);
+        }
+
+        inventory.setReservedQuantity(inventory.getReservedQuantity() + quantity);
+        inventoryRepository.save(inventory);
+    }
+
+    @Transactional
+    public void deductInventoryBatch(List<com.b2becommerce.inventoryservice.event.OrderLineItemDto> items) {
+        log.info("Attempting batch deduction for {} items", items.size());
+        for (com.b2becommerce.inventoryservice.event.OrderLineItemDto item : items) {
+            deductInventory(item.getSkuCode(), item.getQuantity());
+        }
     }
 }

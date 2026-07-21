@@ -1,16 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { User, Mail, Shield, Clock, Package } from 'lucide-react';
+import { AuthContext } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 const Profile = () => {
+  const { user: authUser } = useContext(AuthContext);
   const [isEditing, setIsEditing] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  
   const [user, setUser] = useState({
-    name: 'Demo User',
-    role: 'Senior Procurement Officer',
-    email: 'admin@b2b.enterprise'
+    name: authUser?.name || 'Demo User',
+    role: authUser?.roles?.join(', ') || 'Customer',
+    email: authUser?.email || 'user@b2b.enterprise'
   });
   
+  useEffect(() => {
+    if (authUser) {
+      setUser({
+        name: authUser.name || 'Demo User',
+        role: authUser.roles?.join(', ') || 'Customer',
+        email: authUser.email || 'user@b2b.enterprise'
+      });
+    }
+  }, [authUser]);
+  
   const [editForm, setEditForm] = useState({ ...user });
+
+  useEffect(() => {
+    setEditForm({ ...user });
+  }, [user]);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -40,6 +58,30 @@ const Profile = () => {
     setEditForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const isGuest = authUser?.roles?.includes('ROLE_GUEST') || authUser?.email?.toLowerCase().includes('guest') || user.role.toLowerCase().includes('guest');
+
+  if (isGuest) {
+    return (
+      <div className="container" style={{ paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)', position: 'relative' }}>
+        <h2 style={{ marginBottom: 'var(--spacing-lg)' }}>My Profile</h2>
+        <div className="card animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', padding: '3rem 2rem', textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', padding: '1.5rem', borderRadius: '50%', background: 'rgba(139, 92, 246, 0.1)', marginBottom: '1.5rem' }}>
+            <Shield size={64} color="#8b5cf6" />
+          </div>
+          <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#f8fafc' }}>Guest Account</h3>
+          <p style={{ color: '#94a3b8', marginBottom: '2rem', fontSize: '1.1rem', maxWidth: '500px', margin: '0 auto 2.5rem auto', lineHeight: '1.6' }}>
+            This is a guest account. You do not have access to profile settings, order history, or other account features. 
+            You only have access to view catalog items.
+          </p>
+          <Link to="/catalog" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1.5rem', fontSize: '1.1rem' }}>
+            <Package size={20} />
+            View Catalog
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container" style={{ paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)', position: 'relative' }}>
       <h2 style={{ marginBottom: 'var(--spacing-lg)' }}>My Profile</h2>
@@ -59,7 +101,7 @@ const Profile = () => {
             fontWeight: 'bold',
             boxShadow: '0 10px 25px -5px rgba(99, 102, 241, 0.5)'
           }}>
-            {user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+            {user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'U'}
           </div>
           <div style={{ flex: 1 }}>
             {isEditing ? (
@@ -84,7 +126,7 @@ const Profile = () => {
             ) : (
               <>
                 <h1 style={{ fontSize: '2rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>{user.name}</h1>
-                <p style={{ color: '#94a3b8', fontSize: '1.1rem', margin: '0 0 1rem 0' }}>{user.role}</p>
+                <p style={{ color: '#94a3b8', fontSize: '1.1rem', margin: '0 0 1rem 0' }}>{user.role || 'Customer'}</p>
               </>
             )}
             <div style={{ display: 'inline-block', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
@@ -117,7 +159,7 @@ const Profile = () => {
             <Shield size={24} color="#8b5cf6" />
             <div>
               <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.25rem' }}>Access Role</div>
-              <div style={{ color: '#e2e8f0', fontWeight: '500' }}>Administrator</div>
+              <div style={{ color: '#e2e8f0', fontWeight: '500' }}>{user.role || 'Customer'}</div>
             </div>
           </div>
 
@@ -125,7 +167,7 @@ const Profile = () => {
             <Clock size={24} color="#10b981" />
             <div>
               <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.25rem' }}>Member Since</div>
-              <div style={{ color: '#e2e8f0', fontWeight: '500' }}>July 2026</div>
+              <div style={{ color: '#e2e8f0', fontWeight: '500' }}>Today</div>
             </div>
           </div>
 
@@ -133,7 +175,7 @@ const Profile = () => {
             <Package size={24} color="#f59e0b" />
             <div>
               <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.25rem' }}>Total Orders</div>
-              <div style={{ color: '#e2e8f0', fontWeight: '500' }}>14</div>
+              <div style={{ color: '#e2e8f0', fontWeight: '500' }}>0</div>
             </div>
           </div>
         </div>
@@ -180,3 +222,4 @@ const Profile = () => {
 };
 
 export default Profile;
+

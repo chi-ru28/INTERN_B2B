@@ -5,15 +5,16 @@ spring:
   application:
     name: identity-service
   datasource:
-    url: jdbc:postgresql://localhost:5433/b2b_ecommerce
-    username: b2b_user
-    password: b2b_password
+    url: jdbc:h2:mem:b2b_ecommerce;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.H2Dialect
 
   redis:
     host: localhost
@@ -22,8 +23,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: your-email@gmail.com
-    password: your-16-digit-app-password
+    username: ${MAIL_USERNAME:dev}
+    password: ${MAIL_PASSWORD:dev}
     properties:
       mail:
         smtp:
@@ -44,6 +45,8 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+
 
 management:
   endpoints:

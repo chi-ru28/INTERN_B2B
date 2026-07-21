@@ -22,4 +22,6 @@ public class Inventory {
     private String skuCode;
     
     private Integer quantity;
+    
+    private Integer reservedQuantity = 0;
 }

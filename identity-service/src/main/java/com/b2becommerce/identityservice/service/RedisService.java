@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 @Service
+@SuppressWarnings("null")
 public class RedisService {
 
     @Autowired
@@ -105,8 +106,8 @@ public class RedisService {
         if (storedHash == null) return false;
 
         String failedKey = getFailedAttemptKey(email);
-        Integer attempts = (Integer) redisTemplate.opsForValue().get(failedKey);
-        if (attempts == null) attempts = 0;
+        Object attemptsObj = redisTemplate.opsForValue().get(failedKey);
+        Integer attempts = attemptsObj != null ? Integer.parseInt(attemptsObj.toString()) : 0;
 
         if (attempts >= otpConfig.getMaxAttempts()) {
             throw new RuntimeException("Maximum OTP attempts reached.");
@@ -136,8 +137,8 @@ public class RedisService {
         
         checkCooldown(email);
 
-        Integer resends = (Integer) redisTemplate.opsForHash().get(key, "resends");
-        if (resends == null) resends = 0;
+        Object resendsObj = redisTemplate.opsForHash().get(key, "resends");
+        Integer resends = resendsObj != null ? Integer.parseInt(resendsObj.toString()) : 0;
         if (resends >= otpConfig.getMaxResend()) {
             throw new RuntimeException("Maximum resend limit reached.");
         }
@@ -180,15 +181,17 @@ public class RedisService {
 
     private void checkRateLimits(String email) {
         String hourlyKey = getRateLimitKey(email, "hourly");
-        Integer hourlyCount = (Integer) redisTemplate.opsForValue().get(hourlyKey);
+        Object hourlyObj = redisTemplate.opsForValue().get(hourlyKey);
+        Integer hourlyCount = hourlyObj != null ? Integer.parseInt(hourlyObj.toString()) : null;
         if (hourlyCount != null && hourlyCount >= otpConfig.getHourlyLimit()) {
-            throw new RuntimeException("Hourly OTP request limit exceeded.");
+            throw new com.b2becommerce.identityservice.exception.OtpRateLimitExceededException("Hourly OTP request limit exceeded.");
         }
 
         String dailyKey = getRateLimitKey(email, "daily");
-        Integer dailyCount = (Integer) redisTemplate.opsForValue().get(dailyKey);
+        Object dailyObj = redisTemplate.opsForValue().get(dailyKey);
+        Integer dailyCount = dailyObj != null ? Integer.parseInt(dailyObj.toString()) : null;
         if (dailyCount != null && dailyCount >= otpConfig.getDailyLimit()) {
-            throw new RuntimeException("Daily OTP request limit exceeded.");
+            throw new com.b2becommerce.identityservice.exception.OtpRateLimitExceededException("Daily OTP request limit exceeded.");
         }
     }
 
@@ -210,7 +213,7 @@ public class RedisService {
 
     private void checkCooldown(String email) {
         if (Boolean.TRUE.equals(redisTemplate.hasKey(getCooldownKey(email)))) {
-            throw new RuntimeException("Please wait 60 seconds before requesting a new OTP.");
+            throw new com.b2becommerce.identityservice.exception.OtpCooldownException("Please wait 60 seconds before requesting a new OTP.");
         }
     }
 

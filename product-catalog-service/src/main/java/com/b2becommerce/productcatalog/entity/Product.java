@@ -24,6 +24,9 @@ public class Product implements Serializable {
     private String name;
     private String description;
     private BigDecimal price;
+    private String category;
+    private String brand;
+    private String stockStatus; // e.g., IN_STOCK, OUT_OF_STOCK, LOW_STOCK
     
     // Using Map allows for polymorphic, flexible product attributes 
     // (e.g. dimensions, color, weight) which is why we use MongoDB

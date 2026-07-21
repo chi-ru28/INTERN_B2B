@@ -33,6 +33,7 @@ public class PasswordResetToken {
     
     private String ipAddress;
 
+    @Deprecated
     public PasswordResetToken(String token, UserCredential user, String ipAddress) {
         this.token = token;
         this.user = user;
@@ -40,5 +41,21 @@ public class PasswordResetToken {
         this.createdAt = LocalDateTime.now();
         // 15 minute expiry per requirements
         this.expiresAt = LocalDateTime.now().plusMinutes(15);
+        this.expiresAt = LocalDateTime.now().plusMinutes(15);
     }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getToken() { return token; }
+    public void setToken(String token) { this.token = token; }
+    public UserCredential getUser() { return user; }
+    public void setUser(UserCredential user) { this.user = user; }
+    public LocalDateTime getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public boolean isUsed() { return used; }
+    public void setUsed(boolean used) { this.used = used; }
+    public String getIpAddress() { return ipAddress; }
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
 }

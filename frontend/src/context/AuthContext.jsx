@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   });
 
   const login = async (email, password) => {
-    const response = await api.post('/auth/login', { email, password });
+    const response = await api.post('/api/v1/auth/login', { email, password });
     const { accessToken, refreshToken } = response.data;
     
     localStorage.setItem('access_token', accessToken);
@@ -32,9 +32,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const refreshToken = localStorage.getItem('refresh_token');
+      const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
-        await api.post('/auth/logout', { refreshToken });
+        await api.post('/api/v1/auth/logout', { refreshToken });
       }
     } catch (err) {
       console.error('Logout error', err);

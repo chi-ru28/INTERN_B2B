@@ -15,8 +15,7 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
 
-    // e.g. /api/inventory/sku-123
-    @GetMapping("/{skuCode}")
+    @GetMapping("/{skuCode}/stock")
     @ResponseStatus(HttpStatus.OK)
     public boolean isInStock(@PathVariable String skuCode) {
         return inventoryService.isInStock(skuCode);
@@ -27,5 +26,23 @@ public class InventoryController {
     @ResponseStatus(HttpStatus.OK)
     public Map<String, Boolean> areInStock(@RequestParam List<String> skuCode) {
         return inventoryService.areInStock(skuCode);
+    }
+
+    @PostMapping("/{skuCode}/add")
+    @ResponseStatus(HttpStatus.OK)
+    public void addStock(@PathVariable String skuCode, @RequestParam int quantity) {
+        inventoryService.addStock(skuCode, quantity);
+    }
+
+    @PostMapping("/{skuCode}/deduct")
+    @ResponseStatus(HttpStatus.OK)
+    public void deductStock(@PathVariable String skuCode, @RequestParam int quantity) {
+        inventoryService.deductInventory(skuCode, quantity);
+    }
+
+    @PostMapping("/{skuCode}/reserve")
+    @ResponseStatus(HttpStatus.OK)
+    public void reserveStock(@PathVariable String skuCode, @RequestParam int quantity) {
+        inventoryService.reserveStock(skuCode, quantity);
     }
 }

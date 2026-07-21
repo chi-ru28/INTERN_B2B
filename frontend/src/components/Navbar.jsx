@@ -1,6 +1,7 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { ShoppingCart, User, X, Trash2, LogOut, Settings, UserCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import api from '../api/axiosConfig';
 import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
 
@@ -53,26 +54,21 @@ const Navbar = () => {
         }))
       };
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(orderPayload)
-      });
+      const response = await api.post('/api/orders', orderPayload);
 
-      if (response.ok) {
+      if (response.status === 200 || response.status === 201) {
         clearCart();
         setIsCartOpen(false);
         showToast('Order placed successfully!', 'success');
         setTimeout(() => navigate('/orders'), 1500);
-      } else {
-        const errorText = await response.text();
-        showToast(`Failed to place order: ${errorText}`, 'error');
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      showToast('Network error occurred during checkout.', 'error');
+      if (error.response) {
+        showToast(`Failed to place order: ${error.response.data.message || error.message}`, 'error');
+      } else {
+        showToast('Network error occurred during checkout.', 'error');
+      }
     }
   };
 
@@ -141,7 +137,13 @@ const Navbar = () => {
                       {cartItems.map((item, index) => (
                         <div key={index} className="flex-between" style={{ alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <img src={item.imageUrl} alt={item.name} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', background: '#0f172a' }} />
+                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0, overflow: 'hidden' }}>
+                              {item.imageUrl ? (
+                                <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => e.target.style.display = 'none'} />
+                              ) : (
+                                <span>🛍️</span>
+                              )}
+                            </div>
                             <div>
                               <div style={{ fontSize: '0.9rem', color: '#e2e8f0', fontWeight: '500', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
                               <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Qty: {item.quantity} × ${item.price}</div>

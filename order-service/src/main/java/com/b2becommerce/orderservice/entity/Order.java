@@ -19,6 +19,12 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String orderNumber;
+    
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
+
+    private String customerEmail;
+
     @OneToMany(cascade = CascadeType.ALL)
     private List<OrderLineItems> orderLineItemsList;
 }

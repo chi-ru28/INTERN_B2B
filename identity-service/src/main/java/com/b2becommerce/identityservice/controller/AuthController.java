@@ -1,6 +1,5 @@
 package com.b2becommerce.identityservice.controller;
 
-import com.b2becommerce.identityservice.entity.UserCredential;
 import com.b2becommerce.identityservice.service.AuthService;
 import com.b2becommerce.identityservice.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,12 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.HashMap;
 
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import jakarta.mail.internet.MimeMessage;
-
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
     @Autowired
@@ -23,19 +18,13 @@ public class AuthController {
     @Autowired
     private JwtService jwtService;
 
-    @Autowired
-    private JavaMailSender mailSender;
-
     @PostMapping("/register")
-    public java.util.Map<String, String> register(@jakarta.validation.Valid @RequestBody com.b2becommerce.identityservice.dto.RegisterRequest request) {
-        String message = authService.register(request);
-        java.util.Map<String, String> response = new java.util.HashMap<>();
-        response.put("message", message);
-        return response;
+    public java.util.Map<String, Object> register(@jakarta.validation.Valid @RequestBody com.b2becommerce.identityservice.dto.RegisterRequest request) {
+        return authService.register(request);
     }
 
     @PostMapping("/login")
-    public java.util.Map<String, String> login(@jakarta.validation.Valid @RequestBody com.b2becommerce.identityservice.dto.LoginRequest request) {
+    public java.util.Map<String, Object> login(@jakarta.validation.Valid @RequestBody com.b2becommerce.identityservice.dto.LoginRequest request) {
         return authService.login(request);
     }
 
@@ -45,18 +34,24 @@ public class AuthController {
         return "Token is valid";
     }
 
-    @PostMapping("/forgot-password")
-    @Deprecated
-    public java.util.Map<String, String> forgotPassword(@RequestBody java.util.Map<String, String> payload) {
+    @PostMapping("/request-otp")
+    public java.util.Map<String, Object> requestOtp(@RequestBody java.util.Map<String, String> payload, HttpServletRequest request) {
         String email = payload.get("email");
         if (email == null || email.isEmpty()) {
             throw new RuntimeException("Email is required");
         }
-        
-        String message = authService.forgotPassword(email);
 
-        java.util.Map<String, String> response = new java.util.HashMap<>();
-        response.put("message", message);
+        String ipAddress = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+        String browser = userAgent != null ? userAgent : "Unknown";
+        String os = userAgent != null ? userAgent : "Unknown";
+        String country = "Unknown";
+
+        String otp = authService.requestOtp(email, ipAddress, browser, os, country);
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("message", "A one-time password has been sent to your email.");
+        response.put("devOtp", otp);
         return response;
     }
 
@@ -93,29 +88,10 @@ public class AuthController {
 
     // --- New OTP Endpoints ---
 
-    @PostMapping("/request-otp")
-    public Map<String, Object> requestOtp(@RequestBody Map<String, String> payload, HttpServletRequest request) {
-        String email = payload.get("email");
-        if (email == null || email.isEmpty()) {
-            throw new RuntimeException("Email is required");
-        }
-
-        String ipAddress = request.getRemoteAddr();
-        String userAgent = request.getHeader("User-Agent");
-        String browser = userAgent != null ? userAgent : "Unknown";
-        String os = userAgent != null ? userAgent : "Unknown";
-        String country = "Unknown"; // Mocked for now
-
-        authService.requestOtp(email, ipAddress, browser, os, country);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "OTP sent to your email");
-        return response;
-    }
+    // Request OTP is now handled by /forgot-password
 
     @PostMapping("/verify-otp")
-    public Map<String, Object> verifyOtp(@RequestBody Map<String, String> payload) {
+    public java.util.Map<String, Object> verifyOtp(@RequestBody java.util.Map<String, String> payload) {
         String email = payload.get("email");
         String otp = payload.get("otp");
         if (email == null || email.isEmpty() || otp == null || otp.isEmpty()) {
@@ -124,9 +100,9 @@ public class AuthController {
 
         authService.verifyOtp(email, otp);
 
-        Map<String, Object> response = new HashMap<>();
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
         response.put("success", true);
-        response.put("message", "OTP verified successfully");
+        response.put("message", "OTP verified successfully.");
         return response;
     }
 
@@ -143,16 +119,17 @@ public class AuthController {
         String os = userAgent != null ? userAgent : "Unknown";
         String country = "Unknown";
 
-        authService.resendOtp(email, ipAddress, browser, os, country);
+        String newOtp = authService.resendOtp(email, ipAddress, browser, os, country);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "OTP resent to your email");
+        response.put("devOtp", newOtp);
         return response;
     }
 
     @PostMapping("/reset-password")
-    public Map<String, Object> resetPassword(@RequestBody Map<String, String> payload) {
+    public java.util.Map<String, Object> resetPassword(@RequestBody java.util.Map<String, String> payload) {
         String email = payload.get("email");
         String newPassword = payload.get("newPassword");
 
@@ -162,10 +139,31 @@ public class AuthController {
 
         authService.resetPasswordWithSession(email, newPassword);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Password reset successful");
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("message", "Password updated successfully. You can sign in with your new password.");
         return response;
+    }
+
+    @PostMapping("/update-password")
+    public java.util.Map<String, Object> updatePassword(@RequestBody java.util.Map<String, String> payload, @RequestHeader("loggedInUser") String email) {
+        String currentPassword = payload.get("currentPassword");
+        String newPassword = payload.get("newPassword");
+
+        if (currentPassword == null || newPassword == null) {
+            throw new RuntimeException("Please provide both current and new passwords.");
+        }
+
+        authService.updatePassword(email, currentPassword, newPassword);
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("message", "Password updated successfully.");
+        return response;
+    }
+
+    @GetMapping("/me")
+    public java.util.Map<String, Object> getCurrentUserProfile(@RequestHeader("loggedInUser") String email) {
+        return authService.getCurrentUserProfile(email);
     }
 
     @PostMapping("/refresh")

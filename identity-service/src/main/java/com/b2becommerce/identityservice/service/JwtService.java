@@ -2,7 +2,7 @@ package com.b2becommerce.identityservice.service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
+
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
@@ -35,7 +35,7 @@ public class JwtService {
     }
 
     private Key getSignKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET);
+        byte[] keyBytes = SECRET.getBytes();
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

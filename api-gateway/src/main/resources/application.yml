@@ -14,11 +14,12 @@ spring:
     port: 6379
   cloud:
     gateway:
+
       routes:
         - id: identity-service
           uri: lb://IDENTITY-SERVICE
           predicates:
-            - Path=/auth/**
+            - Path=/api/v1/auth/**
         - id: product-catalog-service
           uri: lb://PRODUCT-CATALOG-SERVICE
           predicates:
@@ -31,6 +32,8 @@ spring:
           uri: lb://ORDER-SERVICE
           predicates:
             - Path=/api/orders/**
+          filters:
+            - AuthenticationFilter
 
 jwt:
   # This is a dummy secret for development. In production, use a secure, randomly generated string.

@@ -31,4 +31,13 @@ public class PasswordHistory {
         this.user = user;
         this.passwordHash = passwordHash;
     }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public UserCredential getUser() { return user; }
+    public void setUser(UserCredential user) { this.user = user; }
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

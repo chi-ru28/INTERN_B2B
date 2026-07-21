@@ -31,8 +31,8 @@ public class InventoryServiceTest {
 
     @BeforeEach
     void setUp() {
-        inventory1 = new Inventory(1L, "SKU-123", 10);
-        inventory2 = new Inventory(2L, "SKU-456", 0);
+        inventory1 = new Inventory(1L, "SKU-123", 10, 0);
+        inventory2 = new Inventory(2L, "SKU-456", 0, 0);
     }
 
     @Test
@@ -49,7 +49,8 @@ public class InventoryServiceTest {
 
     @Test
     void testDeductInventory() {
-        // As it's just logging right now, we can just call it to ensure no exceptions are thrown
-        inventoryService.deductInventory("ORDER-999");
+        when(inventoryRepository.findBySkuCode("SKU-123")).thenReturn(java.util.Optional.of(inventory1));
+        inventoryService.deductInventory("SKU-123", 5);
+        assertEquals(5, inventory1.getQuantity());
     }
 }

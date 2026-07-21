@@ -8,6 +8,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [devOtp, setDevOtp] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,19 +41,44 @@ const ForgotPassword = () => {
     return `${m}:${s}`;
   };
 
+  const getErrorMessage = (err) => {
+    if (!err.response) return 'Failed to connect to the server.';
+    
+    // Handle API Gateway 503 (no errorCode present in standard Spring Gateway errors)
+    if (err.response.status === 503) {
+      return 'Service is temporarily unavailable. Please try again later.';
+    }
+
+    if (!err.response.data) return 'An unexpected error occurred.';
+    
+    const errorCode = err.response.data.errorCode;
+    switch (errorCode) {
+      case 'USER_NOT_FOUND': return 'No account found with this email.';
+      case 'SMTP_AUTH_FAILED': return 'Email service is temporarily unavailable.';
+      case 'OTP_RATE_LIMIT': return 'Too many requests. Please try again later.';
+      case 'OTP_COOLDOWN': return 'Please wait 60 seconds before requesting another code.';
+      case 'OTP_EXPIRED': return 'Your verification code has expired.';
+      case 'OTP_INVALID': return 'Incorrect verification code.';
+      case 'REDIS_UNAVAILABLE': return 'Verification service is temporarily unavailable.';
+      case 'SMTP_CONFIGURATION_MISSING': return 'Email service configuration is missing.';
+      default: return err.response.data.message || 'An unexpected error occurred.';
+    }
+  };
+
   const handleRequestOtp = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
     try {
-      await api.post('/auth/request-otp', { email });
+      const res = await api.post('/api/v1/auth/request-otp', { email });
       setStep(2);
       setTimeLeft(300);
       setResendCooldown(60);
-      setSuccess('OTP sent to your email');
+      setSuccess('Verification code sent successfully.');
+      if (res.data.devOtp && import.meta.env.VITE_ENV === 'local') setDevOtp(res.data.devOtp);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send OTP');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -65,11 +91,11 @@ const ForgotPassword = () => {
     setSuccess('');
     
     try {
-      await api.post('/auth/verify-otp', { email, otp });
+      await api.post('/api/v1/auth/verify-otp', { email, otp });
       setStep(3);
       setSuccess('OTP verified. You can now reset your password.');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid or expired OTP');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -82,12 +108,13 @@ const ForgotPassword = () => {
     setSuccess('');
 
     try {
-      await api.post('/auth/resend-otp', { email });
+      const res = await api.post('/api/v1/auth/resend-otp', { email });
       setTimeLeft(300);
       setResendCooldown(60);
-      setSuccess('OTP resent to your email');
+      setSuccess('Verification code sent successfully.');
+      if (res.data.devOtp && import.meta.env.VITE_ENV === 'local') setDevOtp(res.data.devOtp);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to resend OTP');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -100,11 +127,11 @@ const ForgotPassword = () => {
     setSuccess('');
 
     try {
-      await api.post('/auth/reset-password', { email, newPassword });
+      await api.post('/api/v1/auth/reset-password', { email, newPassword });
       setSuccess('Password reset successfully!');
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reset password');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -147,6 +174,20 @@ const ForgotPassword = () => {
 
       {step === 2 && (
         <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {devOtp && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+              <div style={{ flexShrink: 0 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <span style={{ fontSize: '0.95rem' }}>
+                Your OTP is: <strong>{devOtp}</strong>. (Note: Email sending might be disabled).
+              </span>
+            </div>
+          )}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <label style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Verification Code</label>
