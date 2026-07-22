@@ -43,8 +43,8 @@ public class OrderService {
                 .collect(Collectors.toList());
 
         OrderPlacedEvent event = new OrderPlacedEvent(order.getOrderNumber(), customerEmail, itemsDto);
-        log.info("MOCK: Publishing OrderPlacedEvent for order: {}", order.getOrderNumber());
-        // kafkaTemplate.send("orderTopic", event);
+        log.info("Publishing OrderPlacedEvent for order: {}", order.getOrderNumber());
+        kafkaTemplate.send("orderTopic", event);
         
         return "Order Placed Successfully and is PENDING verification";
     }
@@ -62,8 +62,8 @@ public class OrderService {
                 // Get email to send cancellation
                 Order order = orderRepository.findByOrderNumber(failedEvent.getOrderNumber());
                 if (order != null) {
-                    log.info("MOCK: Sending OrderCancelledEvent for order: {}", failedEvent.getOrderNumber());
-                    // kafkaTemplate.send("notificationTopic", new OrderCancelledEvent(failedEvent.getOrderNumber(), order.getCustomerEmail(), failedEvent.getReason()));
+                    log.info("Sending OrderCancelledEvent for order: {}", failedEvent.getOrderNumber());
+                    kafkaTemplate.send("notificationTopic", new OrderCancelledEvent(failedEvent.getOrderNumber(), order.getCustomerEmail(), failedEvent.getReason()));
                 }
             } else {
                 InventoryDeductedEvent deductedEvent = objectMapper.readValue(message, InventoryDeductedEvent.class);
@@ -72,8 +72,8 @@ public class OrderService {
                 // Send confirmation notification
                 Order order = orderRepository.findByOrderNumber(deductedEvent.getOrderNumber());
                 if (order != null) {
-                    log.info("MOCK: Sending OrderConfirmedEvent for order: {}", deductedEvent.getOrderNumber());
-                    // kafkaTemplate.send("notificationTopic", new OrderConfirmedEvent(deductedEvent.getOrderNumber(), order.getCustomerEmail()));
+                    log.info("Sending OrderConfirmedEvent for order: {}", deductedEvent.getOrderNumber());
+                    kafkaTemplate.send("notificationTopic", new OrderConfirmedEvent(deductedEvent.getOrderNumber(), order.getCustomerEmail()));
                 }
             }
         } catch (Exception e) {
